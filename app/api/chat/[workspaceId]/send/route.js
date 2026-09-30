@@ -41,18 +41,26 @@ function buildSystemPrompt(chunks) {
 ${ctx}`;
 }
 
-async function callGroq(messages) {
-  const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), 60000);
-  try {
-    const res = await fetch(GROQ_URL, {
-      method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.GROQ_API_KEY}` },
-      body: JSON.stringify({ model: GROQ_MODEL, messages, tools: groqTools, tool_choice: 'auto', max_tokens: 4096 }), signal: ctrl.signal
-    });
-    clearTimeout(t);
-    if (!res.ok) { console.error('Groq:', res.status); throw new Error(`LLM error (${res.status})`); }
-    return res.json();
-  } catch (e) { clearTimeout(t); throw e; }
+async function callGroq(messages, retries = 3) {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 60000);
+    try {
+      const res = await fetch(GROQ_URL, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.GROQ_API_KEY}` },
+        body: JSON.stringify({ model: GROQ_MODEL, messages, tools: groqTools, tool_choice: 'auto', max_tokens: 4096 }), signal: ctrl.signal
+      });
+      clearTimeout(t);
+      if (res.status === 429 && attempt < retries) {
+        const wait = Math.pow(2, attempt + 1) * 1000;
+        console.log(`Groq 429 rate limit, retrying in ${wait/1000}s (attempt ${attempt+1}/${retries})`);
+        await new Promise(r => setTimeout(r, wait));
+        continue;
+      }
+      if (!res.ok) { console.error('Groq:', res.status); throw new Error(`LLM error (${res.status})`); }
+      return res.json();
+    } catch (e) { clearTimeout(t); if (attempt === retries) throw e; }
+  }
 }
 
 export async function POST(req, { params }) {
