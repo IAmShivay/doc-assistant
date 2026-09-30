@@ -2,6 +2,7 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import authRouter from './auth.js';
 import workspacesRouter from './workspaces.js';
@@ -20,10 +21,20 @@ app.use('/api/workspaces', workspacesRouter);
 app.use('/api/documents', documentsRouter);
 app.use('/api/chat', chatRouter);
 
-app.use(express.static(path.join(__dirname, '..', 'client', 'dist')));
+const distPath = path.join(__dirname, '..', 'client', 'dist');
+const indexPath = path.join(distPath, 'index.html');
+
+if (fs.existsSync(distPath)) {
+  app.use(express.static(distPath));
+}
+
 app.get('*', (req, res) => {
   if (!req.path.startsWith('/api')) {
-    res.sendFile(path.join(__dirname, '..', 'client', 'dist', 'index.html'));
+    if (fs.existsSync(indexPath)) {
+      res.sendFile(indexPath);
+    } else {
+      res.status(503).send('App is starting up. Client build not found. Please redeploy.');
+    }
   }
 });
 
