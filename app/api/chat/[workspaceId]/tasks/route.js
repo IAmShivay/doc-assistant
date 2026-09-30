@@ -6,8 +6,8 @@ export async function GET(req, { params }) {
   try {
     const user = requireAuth(req);
     const { workspaceId } = await params;
-    checkWorkspaceMember(user.id, workspaceId);
-    const tasks = db.prepare('SELECT * FROM tasks WHERE workspace_id = ? ORDER BY created_at DESC').all(workspaceId);
+    await checkWorkspaceMember(user.id, workspaceId);
+    const tasks = await db.prepare('SELECT id, title, description, status, created_at FROM tasks WHERE workspace_id = ? ORDER BY created_at DESC').all(workspaceId);
     return NextResponse.json(tasks);
   } catch (e) { return NextResponse.json({ error: e.message }, { status: 401 }); }
 }

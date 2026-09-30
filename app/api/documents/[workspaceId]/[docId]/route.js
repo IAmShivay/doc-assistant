@@ -8,11 +8,11 @@ export async function DELETE(req, { params }) {
   try {
     const user = requireAuth(req);
     const { workspaceId, docId } = await params;
-    checkWorkspaceMember(user.id, workspaceId);
-    const doc = db.prepare('SELECT * FROM documents WHERE id = ? AND workspace_id = ?').get(docId, workspaceId);
+    await checkWorkspaceMember(user.id, workspaceId);
+    const doc = await db.prepare('SELECT filename FROM documents WHERE id = ? AND workspace_id = ?').get(docId, workspaceId);
     if (!doc) return NextResponse.json({ error: 'Not found' }, { status: 404 });
-    db.prepare('DELETE FROM chunks WHERE document_id = ?').run(docId);
-    db.prepare('DELETE FROM documents WHERE id = ?').run(docId);
+    await db.prepare('DELETE FROM chunks WHERE document_id = ?').run(docId);
+    await db.prepare('DELETE FROM documents WHERE id = ?').run(docId);
     const fp = path.join(process.cwd(), 'data', 'uploads', doc.filename);
     if (fs.existsSync(fp)) fs.unlinkSync(fp);
     return NextResponse.json({ ok: true });

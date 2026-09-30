@@ -24,7 +24,7 @@ export async function POST(req, { params }) {
   try {
     const user = requireAuth(req);
     const { workspaceId } = await params;
-    checkWorkspaceMember(user.id, workspaceId);
+    await checkWorkspaceMember(user.id, workspaceId);
 
     const formData = await req.formData();
     const file = formData.get('file');
@@ -39,7 +39,7 @@ export async function POST(req, { params }) {
     if (!content?.trim()) return NextResponse.json({ error: 'Could not extract text from file' }, { status: 400 });
 
     const hash = contentHash(content);
-    const existing = db.prepare('SELECT id FROM documents WHERE workspace_id = ? AND content_hash = ?').get(workspaceId, hash);
+    const existing = await db.prepare('SELECT id FROM documents WHERE workspace_id = ? AND content_hash = ?').get(workspaceId, hash);
     if (existing) return NextResponse.json({ id: existing.id, message: 'Document already exists', duplicate: true });
 
     const docId = uuidv4();
@@ -47,13 +47,12 @@ export async function POST(req, { params }) {
     fs.writeFileSync(path.join(uploadDir, filename), buffer);
 
     const chunks = chunkText(content);
-    const embeddings = embedBatch(chunks);
+    const embeddings = await embedBatch(chunks);
 
-    db.transaction(() => {
-      db.prepare('INSERT INTO documents (id, workspace_id, filename, original_name, content_hash) VALUES (?, ?, ?, ?, ?)').run(docId, workspaceId, filename, file.name, hash);
-      const ins = db.prepare('INSERT INTO chunks (id, document_id, workspace_id, content, chunk_index, embedding) VALUES (?, ?, ?, ?, ?, ?)');
-      for (let i = 0; i < chunks.length; i++) ins.run(uuidv4(), docId, workspaceId, chunks[i], i, JSON.stringify(embeddings[i]));
-    })();
+    await db.prepare('INSERT INTO documents (id, workspace_id, filename, original_name, content_hash) VALUES (?, ?, ?, ?, ?)').run(docId, workspaceId, filename, file.name, hash);
+    for (let i = 0; i < chunks.length; i++) {
+      await db.prepare('INSERT INTO chunks (id, document_id, workspace_id, content, chunk_index, embedding) VALUES (?, ?, ?, ?, ?, ?)').run(uuidv4(), docId, workspaceId, chunks[i], i, JSON.stringify(embeddings[i]));
+    }
 
     return NextResponse.json({ id: docId, original_name: file.name, chunks: chunks.length, message: 'Document uploaded and indexed' }, { status: 201 });
   } catch (e) { console.error('Upload error:', e); return NextResponse.json({ error: 'Upload failed: ' + e.message }, { status: 500 }); }
