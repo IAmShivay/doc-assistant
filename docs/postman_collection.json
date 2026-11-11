@@ -1,0 +1,512 @@
+{
+	"info": {
+		"_postman_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+		"name": "Doc Assistant API",
+		"description": "API collection for the Doc Assistant application. Covers authentication, workspaces, documents, and chat endpoints.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{token}}",
+				"type": "string"
+			}
+		]
+	},
+	"variable": [],
+	"item": [
+		{
+			"name": "Auth",
+			"item": [
+				{
+					"name": "Register",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"if (pm.response.code === 200 || pm.response.code === 201) {",
+									"    var jsonData = pm.response.json();",
+									"    if (jsonData.token) {",
+									"        pm.environment.set(\"token\", jsonData.token);",
+									"    }",
+									"    pm.test(\"Registration successful\", function () {",
+									"        pm.expect(jsonData).to.have.property(\"token\");",
+									"        pm.expect(jsonData).to.have.property(\"user\");",
+									"    });",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"user@example.com\",\n    \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/register",
+							"host": ["{{base_url}}"],
+							"path": ["api", "auth", "register"]
+						},
+						"description": "Register a new user account. Automatically sets the token environment variable on success."
+					},
+					"response": []
+				},
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var jsonData = pm.response.json();",
+									"    if (jsonData.token) {",
+									"        pm.environment.set(\"token\", jsonData.token);",
+									"    }",
+									"    pm.test(\"Login successful\", function () {",
+									"        pm.expect(jsonData).to.have.property(\"token\");",
+									"        pm.expect(jsonData).to.have.property(\"user\");",
+									"    });",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"user@example.com\",\n    \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/login",
+							"host": ["{{base_url}}"],
+							"path": ["api", "auth", "login"]
+						},
+						"description": "Log in with existing credentials. Automatically sets the token environment variable on success."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Current User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test(\"Response has user object\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property(\"user\");",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/auth/me",
+							"host": ["{{base_url}}"],
+							"path": ["api", "auth", "me"]
+						},
+						"description": "Get the currently authenticated user's profile. Requires Bearer token."
+					},
+					"response": []
+				}
+			],
+			"description": "Authentication endpoints for registration, login, and user profile."
+		},
+		{
+			"name": "Workspaces",
+			"item": [
+				{
+					"name": "List Workspaces",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test(\"Response is an array\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.be.an(\"array\");",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/workspaces",
+							"host": ["{{base_url}}"],
+							"path": ["api", "workspaces"]
+						},
+						"description": "List all workspaces for the authenticated user."
+					},
+					"response": []
+				},
+				{
+					"name": "Create Workspace",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"if (pm.response.code === 200 || pm.response.code === 201) {",
+									"    var jsonData = pm.response.json();",
+									"    var id = jsonData._id || jsonData.id;",
+									"    if (id) {",
+									"        pm.environment.set(\"workspace_id\", id);",
+									"    }",
+									"    pm.test(\"Workspace created successfully\", function () {",
+									"        pm.expect(id).to.not.be.undefined;",
+									"    });",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"My Workspace\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/workspaces",
+							"host": ["{{base_url}}"],
+							"path": ["api", "workspaces"]
+						},
+						"description": "Create a new workspace. Automatically sets the workspace_id environment variable on success."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Workspace",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Workspace deleted\", function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 204]);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/workspaces/{{workspace_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "workspaces", "{{workspace_id}}"]
+						},
+						"description": "Delete a workspace by ID."
+					},
+					"response": []
+				}
+			],
+			"description": "Workspace management endpoints. All require authentication."
+		},
+		{
+			"name": "Documents",
+			"item": [
+				{
+					"name": "List Documents",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/documents/{{workspace_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "documents", "{{workspace_id}}"]
+						},
+						"description": "List all documents in a workspace."
+					},
+					"response": []
+				},
+				{
+					"name": "Upload Document",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"if (pm.response.code === 200 || pm.response.code === 201) {",
+									"    var jsonData = pm.response.json();",
+									"    var id = jsonData._id || jsonData.id;",
+									"    if (id) {",
+									"        pm.environment.set(\"doc_id\", id);",
+									"    }",
+									"    pm.test(\"Document uploaded successfully\", function () {",
+									"        pm.expect(id).to.not.be.undefined;",
+									"    });",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": "",
+									"description": "The document file to upload"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/api/documents/{{workspace_id}}/upload",
+							"host": ["{{base_url}}"],
+							"path": ["api", "documents", "{{workspace_id}}", "upload"]
+						},
+						"description": "Upload a document to a workspace using multipart/form-data. Automatically sets the doc_id environment variable on success."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Document",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Document deleted\", function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 204]);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/documents/{{workspace_id}}/{{doc_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "documents", "{{workspace_id}}", "{{doc_id}}"]
+						},
+						"description": "Delete a document from a workspace."
+					},
+					"response": []
+				}
+			],
+			"description": "Document management endpoints. All require authentication."
+		},
+		{
+			"name": "Chat",
+			"item": [
+				{
+					"name": "Send Message",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Message sent successfully\", function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"message\": \"What is this document about?\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/chat/{{workspace_id}}/send",
+							"host": ["{{base_url}}"],
+							"path": ["api", "chat", "{{workspace_id}}", "send"]
+						},
+						"description": "Send a chat message to the workspace assistant."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Chat History",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/chat/{{workspace_id}}/history",
+							"host": ["{{base_url}}"],
+							"path": ["api", "chat", "{{workspace_id}}", "history"]
+						},
+						"description": "Get the full chat history for a workspace."
+					},
+					"response": []
+				},
+				{
+					"name": "Clear Chat History",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Chat history cleared\", function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 204]);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/chat/{{workspace_id}}/history",
+							"host": ["{{base_url}}"],
+							"path": ["api", "chat", "{{workspace_id}}", "history"]
+						},
+						"description": "Clear the chat history for a workspace."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Tool Logs",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/chat/{{workspace_id}}/tool-logs",
+							"host": ["{{base_url}}"],
+							"path": ["api", "chat", "{{workspace_id}}", "tool-logs"]
+						},
+						"description": "Get tool execution logs for a workspace chat."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Tasks",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/chat/{{workspace_id}}/tasks",
+							"host": ["{{base_url}}"],
+							"path": ["api", "chat", "{{workspace_id}}", "tasks"]
+						},
+						"description": "Get tasks associated with a workspace chat."
+					},
+					"response": []
+				}
+			],
+			"description": "Chat endpoints for messaging, history, tool logs, and tasks. All require authentication."
+		}
+	]
+}
